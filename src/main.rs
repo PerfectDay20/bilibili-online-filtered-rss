@@ -14,7 +14,7 @@ mod rss_generator;
 mod blacklist;
 
 
-async fn call_api_generate_rss(blacklist :&HashSet<String>) -> Result<String, Box<dyn std::error::Error>> {
+async fn call_api_generate_rss(blacklist: &HashSet<String>) -> Result<String, Box<dyn std::error::Error>> {
     let resp = reqwest::get("https://api.bilibili.com/x/web-interface/online/list")
         .await?
         .json::<Bili>()
