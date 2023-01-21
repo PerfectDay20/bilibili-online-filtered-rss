@@ -47,9 +47,19 @@ fn create_item_desc(d: &Data) -> String {
             author = d.owner.name,
             category = d.tname,
             desc = d.desc,
-            view = d.stat.view,
-            danmaku = d.stat.danmaku,
+            view = convert_count(d.stat.view),
+            danmaku = convert_count(d.stat.danmaku),
             img_src = d.pic)
+}
+
+/// Convert number like view count to a easier reading format,
+/// for example 1000 -> 1k, 20000 -> 2w
+fn convert_count(c: u32) -> String {
+    if c < 1000 { c.to_string() } else if c < 10000 {
+        (c / 1000).to_string() + "k"
+    } else {
+        (c / 10000).to_string() + "w"
+    }
 }
 
 #[test]
