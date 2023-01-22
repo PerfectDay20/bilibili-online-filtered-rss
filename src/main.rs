@@ -50,11 +50,19 @@ async fn process(req: Request<Body>, blacklist: Arc<HashSet<String>>) -> Result<
 async fn main() {
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
 
+    let blacklist = Arc::new(blacklist::create_blacklist());
 
-    let make_svc = make_service_fn(|_conn| async {
-        let blacklist = Arc::new(blacklist::create_blacklist());
-        Ok::<_, hyper::Error>(service_fn(move |req| process(req, Arc::clone(&blacklist))))
-    });
+    let make_svc = make_service_fn(
+        move |_conn| {
+            // https://stackoverflow.com/questions/67960931/moving-non-copy-variable-into-async-closure-captured-variable-cannot-escape-fn
+            let b1 = Arc::clone(&blacklist);
+            async {
+                Ok::<_, hyper::Error>(service_fn(move |req| {
+                    process(req, Arc::clone(&b1))
+                }))
+            }
+        }
+    );
 
     let server = Server::bind(&addr).serve(make_svc);
 
