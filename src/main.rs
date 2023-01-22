@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use env_logger::Env;
 use hyper::{Body, Request, Response, Server};
 use hyper::{Method, StatusCode};
 use hyper::header::{CONTENT_ENCODING, CONTENT_TYPE};
@@ -48,6 +49,9 @@ async fn process(req: Request<Body>, blacklist: Arc<HashSet<String>>) -> Result<
 
 #[tokio::main]
 async fn main() {
+    // Set default log level to info
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
 
     let blacklist = Arc::new(blacklist::create_blacklist());
