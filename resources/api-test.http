@@ -1,0 +1,12 @@
+### get rss content
+GET http://127.0.0.1:3000
+
+### get blacklist
+GET http://127.0.0.1:3000/blacklist
+
+
+### add new items to blacklist
+PATCH http://127.0.0.1:3000/blacklist
+Content-Type: application/json
+
+["hello", "world"]
