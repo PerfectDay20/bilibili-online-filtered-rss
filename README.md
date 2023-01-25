@@ -11,4 +11,5 @@ Sample site: https://bilibili-online-filtered-rss.zhangstef.repl.co
 # APIs
 - `GET host:port` get rss content
 - `GET host:port/blacklist` get blacklist
-- `PATCH host:port/blacklist` add new items to blacklist
+- `PATCH host:port/blacklist` with json array of strings to add new items to blacklist
+- `PUT host:port/blacklist` with json array of strings to replace blacklist

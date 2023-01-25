@@ -10,13 +10,14 @@ use hyper::{Body, Request, Response, Server};
 use hyper::{Method, StatusCode};
 use hyper::header::{CONTENT_TYPE};
 use hyper::service::{make_service_fn, service_fn};
+use log::info;
 use serde_json::json;
 use tokio::sync::{mpsc, oneshot};
 use tokio::sync::mpsc::Sender;
 
 use bilibili::{Bili, Data};
 
-use crate::Command::{AddBlacklist, GetBlacklist, GetRss};
+use crate::Command::{AddBlacklist, GetBlacklist, GetRss, ReplaceBlacklist};
 
 mod bilibili;
 mod rss_generator;
@@ -114,6 +115,23 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
             }
         }
 
+        // Replace new items to blacklist
+        (&Method::PUT, "/blacklist") => {
+            response.headers_mut().insert(CONTENT_TYPE, "application/json".parse().unwrap());
+
+            let full_body = hyper::body::to_bytes(req.into_body()).await?;
+            let items: Vec<String> = serde_json::from_slice(&full_body.to_vec()).unwrap();
+
+            let (one_tx, one_rx) = oneshot::channel();
+            let cmd = ReplaceBlacklist { items, responder: one_tx };
+            tx.send(cmd).await;
+
+            match one_rx.await {
+                Ok(s) => { *response.body_mut() = Body::from(s);}
+                Err(_) => { *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;}
+            }
+        }
+
         _ => {
             *response.status_mut() = StatusCode::NOT_FOUND;
         }
@@ -130,6 +148,7 @@ enum Command {
     GetRss { responder: Responder<Result<String, Box<dyn Error + Send + Sync>>> },
     GetBlacklist { responder: Responder<Vec<String>> },
     AddBlacklist { items: Vec<String>, responder: Responder<String> },
+    ReplaceBlacklist {items: Vec<String>, responder: Responder<String> },
 }
 
 
@@ -153,8 +172,13 @@ async fn main() {
                     responder.send(blacklist.iter().map(|s| s.to_owned()).collect());
                 }
                 AddBlacklist { items, responder } => {
-                    blacklist.borrow_mut().extend(items);
+                    blacklist.extend(items);
                     responder.send(String::from("added"));
+                }
+                ReplaceBlacklist {items, responder} => {
+                    blacklist = items.into_iter().collect();
+                    info!("replace blacklist to: {:?}", blacklist);
+                    responder.send(String::from("replaced"));
                 }
             }
         }

@@ -10,3 +10,9 @@ PATCH http://127.0.0.1:3000/blacklist
 Content-Type: application/json
 
 ["hello", "world"]
+
+### replace blacklist
+PUT http://127.0.0.1:3000/blacklist
+Content-Type: application/json
+
+["hello", "world"]
