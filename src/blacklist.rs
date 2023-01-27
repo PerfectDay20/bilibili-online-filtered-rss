@@ -24,14 +24,12 @@ pub fn create_blacklist(path: Option<PathBuf>) -> Blacklist {
                     process::exit(1);
                 }
             }
-
         }
         None => {
             info!("no blacklist path provided, won't enable filter");
-            Blacklist{authors: HashSet::new(), categories: HashSet::new()}
+            Blacklist { authors: HashSet::new(), categories: HashSet::new() }
         }
     }
-
 }
 
 #[derive(Debug, Serialize, Deserialize)]
