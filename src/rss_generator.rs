@@ -1,13 +1,13 @@
 use rss::validation::{Validate, ValidationError};
 use rss::{ChannelBuilder, ImageBuilder, Item, ItemBuilder};
-use crate::bilibili::Data;
+use crate::bilibili::BiliData;
 
 const TITLE: &str = "Filtered BiliBili online list";
 const LINK: &str = "https://www.bilibili.com/video/online.html";
 const DESC: &str = "A filtered BiliBili online list based on my blacklist";
 const ICON_URL: &str = "https://www.bilibili.com/favicon.ico";
 
-pub fn create_rss(items: Vec<Data>) -> Result<String, ValidationError> {
+pub fn create_rss(items: Vec<BiliData>) -> Result<String, ValidationError> {
     let channel = ChannelBuilder::default()
         .title(TITLE)
         .link(LINK)
@@ -32,7 +32,7 @@ pub fn create_rss(items: Vec<Data>) -> Result<String, ValidationError> {
     Ok(channel.to_string())
 }
 
-fn create_item_desc(d: &Data) -> String {
+fn create_item_desc(d: &BiliData) -> String {
     format!(r#"<b>author:</b> {author}
     <p></p>
     <b>category:</b> {category}

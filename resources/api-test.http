@@ -5,14 +5,56 @@ GET http://127.0.0.1:3000
 GET http://127.0.0.1:3000/blacklist
 
 
-### add new items to blacklist
+### add new items to blacklist, wrong format
 PATCH http://127.0.0.1:3000/blacklist
 Content-Type: application/json
 
 ["hello", "world"]
 
-### replace blacklist
+### add new items to blacklist
+PATCH http://127.0.0.1:3000/blacklist
+Content-Type: application/json
+
+{"authors":["a"],"categories":["b"]}
+
+
+### add new items to blacklist, only author
+PATCH http://127.0.0.1:3000/blacklist
+Content-Type: application/json
+
+{"authors":["a"]}
+
+### add new items to blacklist, only category
+PATCH http://127.0.0.1:3000/blacklist
+Content-Type: application/json
+
+{"categories":["b"]}
+
+### replace blacklist, wrong format
 PUT http://127.0.0.1:3000/blacklist
 Content-Type: application/json
 
 ["hello", "world"]
+
+
+### replace blacklist
+PUT http://127.0.0.1:3000/blacklist
+Content-Type: application/json
+
+{"authors":["a"],"categories":["b"]}
+
+### replace blacklist, only author
+PUT http://127.0.0.1:3000/blacklist
+Content-Type: application/json
+
+{"authors":["a"]}
+
+### replace blacklist, only category
+PUT http://127.0.0.1:3000/blacklist
+Content-Type: application/json
+
+{"categories":["b"]}
+
+
+### get unknown path, return 404
+GET http://127.0.0.1:3000/unknown

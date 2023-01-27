@@ -2,12 +2,12 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Bili {
-    pub data: Vec<Data>,
+    pub data: Vec<BiliData>,
 }
 
 #[derive(Deserialize)]
-pub struct Data {
-    pub tname: String,
+pub struct BiliData {
+    pub tname: String, // category
     pub pic: String,
     pub title: String,
     pub owner: Owner,
