@@ -16,27 +16,18 @@ pub fn create_blacklist() -> Blacklist {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Blacklist {
-    authors: Option<HashSet<String>>,
-    categories: Option<HashSet<String>>,
+    #[serde(default)]
+    authors: HashSet<String>,
+    #[serde(default)]
+    categories: HashSet<String>,
 }
 
 impl Blacklist {
     /// Filter rss content based on author name and category.
     /// Return true when items can be read
     pub fn filter(&self, bili_data: &BiliData) -> bool {
-        if let Some(set) = &self.authors {
-            if set.contains(&bili_data.owner.name) {
-                return false;
-            }
-        }
-
-        if let Some(set) = &self.categories {
-            if set.contains(&bili_data.tname) {
-                return false;
-            }
-        }
-
-        true
+        !self.authors.contains(&bili_data.owner.name)
+            && !self.categories.contains(&bili_data.tname)
     }
 
     pub fn to_json(&self) -> String {
@@ -46,22 +37,9 @@ impl Blacklist {
 
 impl Extend<Blacklist> for Blacklist {
     fn extend<T: IntoIterator<Item=Blacklist>>(&mut self, iter: T) {
-        let mut authors = HashSet::new();
-        let mut categories = HashSet::new();
-
-        if let Some(set) = &self.authors {
-            authors.extend(set.iter().map(|s|s.to_owned()));
-        }
-
-        if let Some(set) = &self.categories {
-            categories.extend(set.iter().map(|s| s.to_owned()));
-        }
-
         for b in iter {
-            authors.extend(b.authors.unwrap_or_default());
-            categories.extend(b.categories.unwrap_or_default());
+            self.authors.extend(b.authors);
+            self.categories.extend(b.categories);
         }
-        self.authors = Some(authors);
-        self.categories = Some(categories);
     }
 }

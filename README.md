@@ -11,8 +11,8 @@ Sample site: https://bilibili-online-filtered-rss.zhangstef.repl.co
 # APIs
 - `GET /` get rss content
 - `GET /blacklist` get blacklist
-- `PATCH /blacklist` with json blacklist body to add new items to blacklist
-- `PUT /blacklist` with json blacklist body to replace blacklist
+- `PATCH /blacklist` with json blacklist body to add new items to blacklist, return the result blacklist
+- `PUT /blacklist` with json blacklist body to replace blacklist, return the result blacklist
 
 HTTP blacklist request body should be a json object, available fields are:
 ```json

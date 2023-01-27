@@ -150,8 +150,6 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
                     *response.body_mut() = Body::from(error_message);
                 }
             }
-
-
         }
 
         _ => {
@@ -201,16 +199,16 @@ async fn main() {
                     }
                 }
                 AddBlacklist { new_blacklist, responder } => {
-                    info!("add items to blacklist: {:?}", new_blacklist.to_json());
+                    info!("add items to blacklist: {}", new_blacklist.to_json());
                     blacklist.extend(Some(new_blacklist));
-                    if let Err(_) = responder.send(format!("after added: {}", blacklist.to_json())) {
+                    if let Err(_) = responder.send(blacklist.to_json()) {
                         error!("the sender dropped")
                     }
                 }
                 ReplaceBlacklist { new_blacklist, responder } => {
                     blacklist = new_blacklist;
-                    info!("replace blacklist to: {:?}", blacklist);
-                    if let Err(_) = responder.send(format!("after replaced: {}", blacklist.to_json())) {
+                    info!("replace blacklist to: {}", blacklist.to_json());
+                    if let Err(_) = responder.send(blacklist.to_json()) {
                         error!("the sender dropped");
                     }
                 }
