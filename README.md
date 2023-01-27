@@ -27,3 +27,16 @@ HTTP blacklist request body should be a json object, available fields are:
 
 ```
 The authors and categories can be got from the rss content.
+
+# CLI
+```
+Usage: bilibili-online-rss [OPTIONS]
+
+Options:
+      --host <HOST>            [default: 127.0.0.1]
+  -p, --port <PORT>            [default: 3000]
+  -b, --blacklist-path <FILE>  
+  -h, --help                   Print help
+  -V, --version                Print version
+
+```

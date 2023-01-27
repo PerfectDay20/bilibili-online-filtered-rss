@@ -1,17 +1,37 @@
+use std::{fs, process};
 use std::collections::HashSet;
-use std::fs;
+use std::path::PathBuf;
 
-use log::info;
+use log::{error, info};
 use serde::Deserialize;
 use serde::Serialize;
 
 use crate::bilibili::BiliData;
 
-pub fn create_blacklist() -> Blacklist {
-    let s = fs::read_to_string("resources/blacklist.json").unwrap();
-    let blacklist: Blacklist = serde_json::from_str(&s).unwrap();
-    info!("init blacklist: {blacklist:?}");
-    blacklist
+pub fn create_blacklist(path: Option<PathBuf>) -> Blacklist {
+    match path {
+        Some(p) => {
+            info!("use blacklist at: {}", p.to_str().unwrap());
+            match fs::read_to_string(p) {
+                Ok(s) => {
+                    let blacklist: Blacklist = serde_json::from_str(&s).unwrap();
+                    info!("init blacklist: {blacklist:?}");
+                    blacklist
+                }
+                Err(e) => {
+                    // Can't read file, the config is not valid, exit now
+                    error!("fail to read blacklist config file: {}", e.to_string());
+                    process::exit(1);
+                }
+            }
+
+        }
+        None => {
+            info!("no blacklist path provided, won't enable filter");
+            Blacklist{authors: HashSet::new(), categories: HashSet::new()}
+        }
+    }
+
 }
 
 #[derive(Debug, Serialize, Deserialize)]

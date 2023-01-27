@@ -3,10 +3,11 @@ extern crate core;
 use std::error::Error;
 use std::net::SocketAddr;
 
+use clap::Parser;
 use env_logger::Env;
 use hyper::{Body, Request, Response, Server};
 use hyper::{Method, StatusCode};
-use hyper::header::{CONTENT_TYPE};
+use hyper::header::CONTENT_TYPE;
 use hyper::service::{make_service_fn, service_fn};
 use log::{error, info};
 use serde_json::json;
@@ -16,11 +17,13 @@ use tokio::sync::mpsc::Sender;
 use bilibili::{Bili, BiliData};
 use blacklist::Blacklist;
 
+use crate::cli::Cli;
 use crate::Command::{AddBlacklist, GetBlacklist, GetRss, ReplaceBlacklist};
 
 mod bilibili;
 mod rss_generator;
 mod blacklist;
+mod cli;
 
 async fn call_api_generate_rss(blacklist: &Blacklist) -> Result<String, Box<dyn Error + Send + Sync>> {
     let resp = reqwest::get("https://api.bilibili.com/x/web-interface/online/list")
@@ -178,13 +181,13 @@ async fn main() {
     // Set default log level to info
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let cli = Cli::parse();
 
     let (tx, mut rx) = mpsc::channel::<Command>(100);
 
     // The worker holds the blacklist and executes commands created by http requests
     let worker = tokio::spawn(async move {
-        let mut blacklist = blacklist::create_blacklist();
+        let mut blacklist = blacklist::create_blacklist(cli.blacklist_path);
         while let Some(cmd) = rx.recv().await {
             match cmd {
                 GetRss { responder } => {
@@ -226,10 +229,11 @@ async fn main() {
         }
     );
 
+    let addr = SocketAddr::from((cli.host, cli.port));
     let server = Server::bind(&addr).serve(make_svc);
 
     if let Err(e) = server.await {
-        eprintln!("server error: {}", e);
+        error!("server error: {}", e);
     }
     worker.await.unwrap();
 }
