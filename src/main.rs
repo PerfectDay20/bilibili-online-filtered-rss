@@ -187,7 +187,7 @@ async fn main() {
 
     // The worker holds the blacklist and executes commands created by http requests
     let worker = tokio::spawn(async move {
-        let mut blacklist = blacklist::create_blacklist(cli.blacklist_path);
+        let mut blacklist: Blacklist = Blacklist::from(cli.blacklist_path);
         while let Some(cmd) = rx.recv().await {
             match cmd {
                 GetRss { responder } => {

@@ -8,30 +8,6 @@ use serde::Serialize;
 
 use crate::bilibili::BiliData;
 
-pub fn create_blacklist(path: Option<PathBuf>) -> Blacklist {
-    match path {
-        Some(p) => {
-            info!("use blacklist at: {}", p.to_str().unwrap());
-            match fs::read_to_string(p) {
-                Ok(s) => {
-                    let blacklist: Blacklist = serde_json::from_str(&s).unwrap();
-                    info!("init blacklist: {blacklist:?}");
-                    blacklist
-                }
-                Err(e) => {
-                    // Can't read file, the config is not valid, exit now
-                    error!("fail to read blacklist config file: {}", e.to_string());
-                    process::exit(1);
-                }
-            }
-        }
-        None => {
-            info!("no blacklist path provided, won't enable filter");
-            Blacklist { authors: HashSet::new(), categories: HashSet::new() }
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Blacklist {
     #[serde(default)]
@@ -50,6 +26,32 @@ impl Blacklist {
 
     pub fn to_json(&self) -> String {
         serde_json::to_string(self).unwrap()
+    }
+}
+
+impl From<Option<PathBuf>> for Blacklist {
+    fn from(path: Option<PathBuf>) -> Self {
+        match path {
+            Some(p) => {
+                info!("use blacklist at: {}", p.to_str().unwrap());
+                match fs::read_to_string(p) {
+                    Ok(s) => {
+                        let blacklist: Blacklist = serde_json::from_str(&s).unwrap();
+                        info!("init blacklist: {blacklist:?}");
+                        blacklist
+                    }
+                    Err(e) => {
+                        // Can't read file, the config is not valid, exit now
+                        error!("fail to read blacklist config file: {}", e.to_string());
+                        process::exit(1);
+                    }
+                }
+            }
+            None => {
+                info!("no blacklist path provided, won't enable filter");
+                Blacklist { authors: HashSet::new(), categories: HashSet::new() }
+            }
+        }
     }
 }
 
