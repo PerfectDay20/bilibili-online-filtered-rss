@@ -1,5 +1,6 @@
-use rss::validation::{Validate, ValidationError};
 use rss::{ChannelBuilder, ImageBuilder, Item, ItemBuilder};
+use rss::validation::{Validate, ValidationError};
+
 use crate::bilibili::BiliData;
 
 const TITLE: &str = "Filtered BiliBili online list";

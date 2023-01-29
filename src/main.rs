@@ -5,14 +5,14 @@ use std::net::SocketAddr;
 
 use clap::Parser;
 use env_logger::Env;
-use hyper::{Body, Request, Response, Server};
-use hyper::{Method, StatusCode};
 use hyper::header::CONTENT_TYPE;
 use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Request, Response, Server};
+use hyper::{Method, StatusCode};
 use log::{error, info};
 use serde_json::json;
-use tokio::sync::{mpsc, oneshot};
 use tokio::sync::mpsc::Sender;
+use tokio::sync::{mpsc, oneshot};
 
 use bilibili::{Bili, BiliData};
 use blacklist::Blacklist;
@@ -21,17 +21,21 @@ use crate::cli::Cli;
 use crate::Command::{AddBlacklist, GetBlacklist, GetRss, ReplaceBlacklist};
 
 mod bilibili;
-mod rss_generator;
 mod blacklist;
 mod cli;
+mod rss_generator;
 
-async fn call_api_generate_rss(blacklist: &Blacklist) -> Result<String, Box<dyn Error + Send + Sync>> {
+async fn call_api_generate_rss(
+    blacklist: &Blacklist,
+) -> Result<String, Box<dyn Error + Send + Sync>> {
     let resp = reqwest::get("https://api.bilibili.com/x/web-interface/online/list")
         .await?
         .json::<Bili>()
         .await?;
 
-    let items: Vec<BiliData> = resp.data.into_iter()
+    let items: Vec<BiliData> = resp
+        .data
+        .into_iter()
         .filter(|bili_data| blacklist.filter(bili_data))
         .collect();
 
@@ -43,7 +47,9 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
     match (req.method(), req.uri().path()) {
         // Get rss content
         (&Method::GET, "/") => {
-            response.headers_mut().insert(CONTENT_TYPE, "application/xml".parse().unwrap());
+            response
+                .headers_mut()
+                .insert(CONTENT_TYPE, "application/xml".parse().unwrap());
 
             let result = tokio::spawn(async move {
                 let (one_tx, one_rx) = oneshot::channel();
@@ -51,28 +57,25 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
                 tx.send(cmd).await;
 
                 match one_rx.await {
-                    Ok(r) => {
-                        match r {
-                            Ok(body) => Ok(body),
-                            Err(e) => Err(e.to_string()),
-                        }
-                    }
+                    Ok(r) => match r {
+                        Ok(body) => Ok(body),
+                        Err(e) => Err(e.to_string()),
+                    },
                     Err(e) => Err(e.to_string()), // TODO: how to handle this error?
                 }
-            }).await;
+            })
+            .await;
 
             match result {
-                Ok(inner_result) => {
-                    match inner_result {
-                        Ok(body) => {
-                            *response.body_mut() = Body::from(body);
-                        }
-                        Err(e) => {
-                            *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                            *response.body_mut() = Body::from(e.to_string());
-                        }
+                Ok(inner_result) => match inner_result {
+                    Ok(body) => {
+                        *response.body_mut() = Body::from(body);
                     }
-                }
+                    Err(e) => {
+                        *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                        *response.body_mut() = Body::from(e.to_string());
+                    }
+                },
                 Err(e) => {
                     *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
                     *response.body_mut() = Body::from(e.to_string());
@@ -82,7 +85,9 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
 
         // Get blacklist content
         (&Method::GET, "/blacklist") => {
-            response.headers_mut().insert(CONTENT_TYPE, "application/json".parse().unwrap());
+            response
+                .headers_mut()
+                .insert(CONTENT_TYPE, "application/json".parse().unwrap());
             let (one_tx, one_rx) = oneshot::channel();
             let cmd = GetBlacklist { responder: one_tx };
             tx.send(cmd).await;
@@ -94,7 +99,8 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
                 Err(e) => {
                     let body = json!({
                         "error": e.to_string()
-                    }).to_string();
+                    })
+                    .to_string();
                     *response.body_mut() = Body::from(body);
                 }
             }
@@ -107,23 +113,30 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
             match serde_json::from_slice::<Blacklist>(&full_body.to_vec()) {
                 Ok(new_blacklist) => {
                     let (one_tx, one_rx) = oneshot::channel();
-                    let cmd = AddBlacklist { new_blacklist, responder: one_tx };
+                    let cmd = AddBlacklist {
+                        new_blacklist,
+                        responder: one_tx,
+                    };
                     tx.send(cmd).await;
 
                     match one_rx.await {
                         Ok(s) => {
-                            response.headers_mut().insert(CONTENT_TYPE, "application/json".parse().unwrap());
+                            response
+                                .headers_mut()
+                                .insert(CONTENT_TYPE, "application/json".parse().unwrap());
                             *response.body_mut() = Body::from(s);
                         }
-                        Err(_) => { *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR; }
+                        Err(_) => {
+                            *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                        }
                     }
                 }
                 Err(e) => {
                     *response.status_mut() = StatusCode::BAD_REQUEST;
-                    let error_message =
-                        String::from(r#"blacklist should be a json object like {"authors":["foo"], categories:["bar"]} "#)
-                            + "\n"
-                            + &e.to_string();
+                    let error_message = String::from(
+                        r#"blacklist should be a json object like {"authors":["foo"], categories:["bar"]} "#,
+                    ) + "\n"
+                        + &e.to_string();
                     *response.body_mut() = Body::from(error_message);
                 }
             }
@@ -134,22 +147,31 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
             let full_body = hyper::body::to_bytes(req.into_body()).await?;
             match serde_json::from_slice::<Blacklist>(&full_body.to_vec()) {
                 Ok(new_blacklist) => {
-                    response.headers_mut().insert(CONTENT_TYPE, "application/json".parse().unwrap());
+                    response
+                        .headers_mut()
+                        .insert(CONTENT_TYPE, "application/json".parse().unwrap());
                     let (one_tx, one_rx) = oneshot::channel();
-                    let cmd = ReplaceBlacklist { new_blacklist, responder: one_tx };
+                    let cmd = ReplaceBlacklist {
+                        new_blacklist,
+                        responder: one_tx,
+                    };
                     tx.send(cmd).await;
 
                     match one_rx.await {
-                        Ok(s) => { *response.body_mut() = Body::from(s); }
-                        Err(_) => { *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR; }
+                        Ok(s) => {
+                            *response.body_mut() = Body::from(s);
+                        }
+                        Err(_) => {
+                            *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
+                        }
                     }
                 }
                 Err(e) => {
                     *response.status_mut() = StatusCode::BAD_REQUEST;
-                    let error_message =
-                        String::from(r#"blacklist should be a json object like {"authors":["foo"], categories:["bar"]} "#)
-                            + "\n"
-                            + &e.to_string();
+                    let error_message = String::from(
+                        r#"blacklist should be a json object like {"authors":["foo"], categories:["bar"]} "#,
+                    ) + "\n"
+                        + &e.to_string();
                     *response.body_mut() = Body::from(error_message);
                 }
             }
@@ -163,18 +185,26 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
     Ok(response)
 }
 
-
 type Responder<T> = oneshot::Sender<T>;
 
 /// Http requests will create and send these commands to worker
 #[derive(Debug)]
 enum Command {
-    GetRss { responder: Responder<Result<String, Box<dyn Error + Send + Sync>>> },
-    GetBlacklist { responder: Responder<String> },
-    AddBlacklist { new_blacklist: Blacklist, responder: Responder<String> },
-    ReplaceBlacklist { new_blacklist: Blacklist, responder: Responder<String> },
+    GetRss {
+        responder: Responder<Result<String, Box<dyn Error + Send + Sync>>>,
+    },
+    GetBlacklist {
+        responder: Responder<String>,
+    },
+    AddBlacklist {
+        new_blacklist: Blacklist,
+        responder: Responder<String>,
+    },
+    ReplaceBlacklist {
+        new_blacklist: Blacklist,
+        responder: Responder<String>,
+    },
 }
-
 
 #[tokio::main]
 async fn main() {
@@ -201,14 +231,20 @@ async fn main() {
                         error!("the sender dropped")
                     }
                 }
-                AddBlacklist { new_blacklist, responder } => {
+                AddBlacklist {
+                    new_blacklist,
+                    responder,
+                } => {
                     info!("add items to blacklist: {}", new_blacklist.to_json());
                     blacklist.extend(Some(new_blacklist));
                     if let Err(_) = responder.send(blacklist.to_json()) {
                         error!("the sender dropped")
                     }
                 }
-                ReplaceBlacklist { new_blacklist, responder } => {
+                ReplaceBlacklist {
+                    new_blacklist,
+                    responder,
+                } => {
                     blacklist = new_blacklist;
                     info!("replace blacklist to: {}", blacklist.to_json());
                     if let Err(_) = responder.send(blacklist.to_json()) {
@@ -219,15 +255,10 @@ async fn main() {
         }
     });
 
-
-    let make_svc = make_service_fn(
-        move |_conn| {
-            let tx = tx.clone();
-            async {
-                Ok::<_, hyper::Error>(service_fn(move |req| process(req, tx.clone())))
-            }
-        }
-    );
+    let make_svc = make_service_fn(move |_conn| {
+        let tx = tx.clone();
+        async { Ok::<_, hyper::Error>(service_fn(move |req| process(req, tx.clone()))) }
+    });
 
     let addr = SocketAddr::from((cli.host, cli.port));
     let server = Server::bind(&addr).serve(make_svc);
