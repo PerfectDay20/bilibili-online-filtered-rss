@@ -73,7 +73,7 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
                     }
                     Err(e) => {
                         *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-                        *response.body_mut() = Body::from(e.to_string());
+                        *response.body_mut() = Body::from(e);
                     }
                 },
                 Err(e) => {
@@ -110,7 +110,7 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
         (&Method::PATCH, "/blacklist") => {
             let full_body = hyper::body::to_bytes(req.into_body()).await?;
 
-            match serde_json::from_slice::<Blacklist>(&full_body.to_vec()) {
+            match serde_json::from_slice::<Blacklist>(&full_body) {
                 Ok(new_blacklist) => {
                     let (one_tx, one_rx) = oneshot::channel();
                     let cmd = AddBlacklist {
@@ -145,7 +145,7 @@ async fn process(req: Request<Body>, tx: Sender<Command>) -> Result<Response<Bod
         // Replace new items to blacklist
         (&Method::PUT, "/blacklist") => {
             let full_body = hyper::body::to_bytes(req.into_body()).await?;
-            match serde_json::from_slice::<Blacklist>(&full_body.to_vec()) {
+            match serde_json::from_slice::<Blacklist>(&full_body) {
                 Ok(new_blacklist) => {
                     response
                         .headers_mut()
@@ -222,12 +222,12 @@ async fn main() {
             match cmd {
                 GetRss { responder } => {
                     let result = call_api_generate_rss(&blacklist).await;
-                    if let Err(_) = responder.send(result) {
+                    if responder.send(result).is_err() {
                         error!("the sender dropped")
                     }
                 }
                 GetBlacklist { responder } => {
-                    if let Err(_) = responder.send(blacklist.to_json()) {
+                    if responder.send(blacklist.to_json()).is_err() {
                         error!("the sender dropped")
                     }
                 }
@@ -237,7 +237,7 @@ async fn main() {
                 } => {
                     info!("add items to blacklist: {}", new_blacklist.to_json());
                     blacklist.extend(Some(new_blacklist));
-                    if let Err(_) = responder.send(blacklist.to_json()) {
+                    if responder.send(blacklist.to_json()).is_err() {
                         error!("the sender dropped")
                     }
                 }
@@ -247,7 +247,7 @@ async fn main() {
                 } => {
                     blacklist = new_blacklist;
                     info!("replace blacklist to: {}", blacklist.to_json());
-                    if let Err(_) = responder.send(blacklist.to_json()) {
+                    if responder.send(blacklist.to_json()).is_err() {
                         error!("the sender dropped");
                     }
                 }
