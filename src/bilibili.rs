@@ -7,7 +7,7 @@ pub struct Bili {
 
 #[derive(Deserialize)]
 pub struct BiliData {
-    // category
+    /// category
     pub tname: String,
     pub pic: String,
     pub title: String,

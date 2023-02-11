@@ -1,7 +1,11 @@
 use rss::{ChannelBuilder, ImageBuilder, Item, ItemBuilder};
 use rss::validation::Validate;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use warp::{Rejection, Reply};
 
-use crate::bilibili::BiliData;
+use crate::bilibili::{Bili, BiliData};
+use crate::blacklist::Blacklist;
 use crate::error::InternalError;
 
 const TITLE: &str = "Filtered BiliBili online list";
@@ -9,7 +13,7 @@ const LINK: &str = "https://www.bilibili.com/video/online.html";
 const DESC: &str = "A filtered BiliBili online list based on my blacklist";
 const ICON_URL: &str = "https://www.bilibili.com/favicon.ico";
 
-pub fn create_rss(items: Vec<BiliData>) -> Result<String, InternalError> {
+fn create_rss(items: Vec<BiliData>) -> Result<String, InternalError> {
     let channel = ChannelBuilder::default()
         .title(TITLE)
         .link(LINK)
@@ -62,6 +66,27 @@ fn convert_count(c: u32) -> String {
     } else {
         (c / 10000).to_string() + "w"
     }
+}
+
+async fn call_api() -> Result<Bili, InternalError> {
+    let resp = reqwest::get("https://api.bilibili.com/x/web-interface/online/list")
+        .await?
+        .json::<Bili>()
+        .await?;
+
+    Ok(resp)
+}
+
+pub async fn generate_rss(blacklist: Arc<RwLock<Blacklist>>) -> Result<impl Reply, Rejection> {
+    let resp = call_api().await?;
+
+    let b = blacklist.read().await;
+    let items: Vec<BiliData> = resp.data
+        .into_iter()
+        .filter(move |bili_data| b.filter(bili_data))
+        .collect();
+
+    Ok(create_rss(items)?)
 }
 
 #[test]
