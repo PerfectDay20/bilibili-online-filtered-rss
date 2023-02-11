@@ -23,10 +23,6 @@ impl Blacklist {
         !self.authors.contains(&bili_data.owner.name)
             && !self.categories.contains(&bili_data.tname)
     }
-
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(self).unwrap()
-    }
 }
 
 impl From<Option<PathBuf>> for Blacklist {

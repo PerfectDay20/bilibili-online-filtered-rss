@@ -1,14 +1,15 @@
 use rss::{ChannelBuilder, ImageBuilder, Item, ItemBuilder};
-use rss::validation::{Validate, ValidationError};
+use rss::validation::Validate;
 
 use crate::bilibili::BiliData;
+use crate::error::InternalError;
 
 const TITLE: &str = "Filtered BiliBili online list";
 const LINK: &str = "https://www.bilibili.com/video/online.html";
 const DESC: &str = "A filtered BiliBili online list based on my blacklist";
 const ICON_URL: &str = "https://www.bilibili.com/favicon.ico";
 
-pub fn create_rss(items: Vec<BiliData>) -> Result<String, ValidationError> {
+pub fn create_rss(items: Vec<BiliData>) -> Result<String, InternalError> {
     let channel = ChannelBuilder::default()
         .title(TITLE)
         .link(LINK)

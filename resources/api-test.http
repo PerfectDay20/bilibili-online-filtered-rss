@@ -58,3 +58,6 @@ Content-Type: application/json
 
 ### get unknown path, return 404
 GET http://127.0.0.1:3000/unknown
+
+### CORS
+OPTIONS http://127.0.0.1:3000
