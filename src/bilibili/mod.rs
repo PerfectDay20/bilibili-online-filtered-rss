@@ -1,3 +1,6 @@
+pub mod blacklist;
+pub mod rss_generator;
+
 use serde::Deserialize;
 
 #[derive(Deserialize)]

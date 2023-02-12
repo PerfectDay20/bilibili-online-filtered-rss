@@ -7,14 +7,14 @@ use tokio::sync::RwLock;
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::Filter;
 
-use blacklist::Blacklist;
+use bilibili::blacklist;
+use bilibili::blacklist::Blacklist;
 
 use crate::cli::Cli;
 
 mod bilibili;
-mod blacklist;
+mod ddys;
 mod cli;
-mod rss_generator;
 mod error;
 
 #[tokio::main]
@@ -35,7 +35,7 @@ async fn main() {
     let get_rss = warp::get()
         .and(warp::path::end())
         .and(blacklist_filter.clone())
-        .and_then(rss_generator::generate_rss);
+        .and_then(bilibili::rss_generator::generate_rss);
 
 
     // GET /blacklist
@@ -65,10 +65,17 @@ async fn main() {
         .and(warp::body::json())
         .and_then(blacklist::put_blacklist);
 
+    // GET /ddys
+    let get_ddys = warp::get()
+        .and(warp::path("ddys"))
+        .and(warp::path::end())
+        .and_then(ddys::rss_generator::generate_rss);
+
     let routes = get_rss
         .or(get_blacklist)
         .or(patch_blacklist)
         .or(put_blacklist)
+        .or(get_ddys)
         .with(warp::trace::request())
         .recover(error::return_error);
 
