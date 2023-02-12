@@ -20,11 +20,11 @@ mod error;
 #[tokio::main]
 async fn main() {
     let log_filter = std::env::var("RUST_LOG")
-        .unwrap_or_else(|_| "bilibili-online-rss=info,warp=info".to_string());
-    tracing_subscriber::fmt().with_env_filter(log_filter)
+        .unwrap_or_else(|_| "bilibili_online_rss=info,warp=info".to_string()); // snake case here
+    tracing_subscriber::fmt()
+        .with_env_filter(log_filter)
         .with_span_events(FmtSpan::CLOSE)
         .init();
-
 
     let cli = Cli::parse();
 

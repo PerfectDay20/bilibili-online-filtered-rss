@@ -6,8 +6,7 @@ use std::sync::Arc;
 use serde::Deserialize;
 use serde::Serialize;
 use tokio::sync::RwLock;
-use tracing::error;
-use tracing::info;
+use tracing::{error, info};
 use warp::{Rejection, Reply};
 
 use crate::bilibili::BiliData;
@@ -65,12 +64,14 @@ impl Extend<Blacklist> for Blacklist {
 }
 
 pub async fn patch_blacklist(blacklist: Arc<RwLock<Blacklist>>, body: Blacklist) -> Result<impl Reply, Rejection> {
+    info!("{body:?}");
     let mut b = blacklist.write().await;
     b.extend(Some(body));
     Ok(format!("added: {b:?}"))
 }
 
 pub async fn put_blacklist(blacklist: Arc<RwLock<Blacklist>>, body: Blacklist) -> Result<impl Reply, Rejection> {
+    info!("{body:?}");
     let mut b = blacklist.write().await;
     *b = body;
     Ok(format!("replaced: {b:?}"))
