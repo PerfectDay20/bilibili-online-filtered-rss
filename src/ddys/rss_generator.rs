@@ -6,8 +6,8 @@ use scraper::{Html, Selector};
 use crate::ddys::Ddys;
 use crate::error::MyError;
 
-const TITLE: &str = "ddys.art";
-const LINK: &str = "https://ddys.art";
+const TITLE: &str = "ddys.site";
+const LINK: &str = "https://ddys.site";
 const DESC: &str = "A rss for ddys";
 const ICON_URL: &str = "https://ddys.art/favicon-32x32.png";
 
@@ -49,7 +49,7 @@ fn create_item_desc(d: &Ddys) -> String {
 }
 
 pub async fn generate_rss() -> Result<impl Reply, Rejection> {
-    let html = reqwest::get("https://ddys.art")
+    let html = reqwest::get("https://ddys.pro")
         .await.map_err(MyError::Reqwest)?
         .text()
         .await.map_err(MyError::Reqwest)?;
