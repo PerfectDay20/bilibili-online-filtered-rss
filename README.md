@@ -34,6 +34,8 @@ The authors and categories can be got from the rss content.
 ## ddys.site
 - `GET /ddys` get rss content of ddys
 
+## status
+- `GET /status` will return `ok`
 
 # CLI
 ```

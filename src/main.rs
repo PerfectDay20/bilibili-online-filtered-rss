@@ -65,6 +65,12 @@ async fn main() {
         .and(warp::body::json())
         .and_then(blacklist::put_blacklist);
 
+    // GET /status
+    let get_status = warp::get()
+        .and(warp::path("status"))
+        .and(warp::path::end())
+        .map(|| "ok");
+
     // GET /ddys
     let get_ddys = warp::get()
         .and(warp::path("ddys"))
@@ -75,6 +81,7 @@ async fn main() {
         .or(get_blacklist)
         .or(patch_blacklist)
         .or(put_blacklist)
+        .or(get_status)
         .or(get_ddys)
         .with(warp::trace::request())
         .recover(error::return_error);
