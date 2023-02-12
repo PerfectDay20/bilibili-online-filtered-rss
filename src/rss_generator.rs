@@ -1,19 +1,20 @@
+use std::sync::Arc;
+
 use rss::{ChannelBuilder, ImageBuilder, Item, ItemBuilder};
 use rss::validation::Validate;
-use std::sync::Arc;
 use tokio::sync::RwLock;
 use warp::{Rejection, Reply};
 
 use crate::bilibili::{Bili, BiliData};
 use crate::blacklist::Blacklist;
-use crate::error::InternalError;
+use crate::error::MyError;
 
 const TITLE: &str = "Filtered BiliBili online list";
 const LINK: &str = "https://www.bilibili.com/video/online.html";
 const DESC: &str = "A filtered BiliBili online list based on my blacklist";
 const ICON_URL: &str = "https://www.bilibili.com/favicon.ico";
 
-fn create_rss(items: Vec<BiliData>) -> Result<String, InternalError> {
+fn create_rss(items: Vec<BiliData>) -> Result<String, Rejection> {
     let channel = ChannelBuilder::default()
         .title(TITLE)
         .link(LINK)
@@ -27,14 +28,14 @@ fn create_rss(items: Vec<BiliData>) -> Result<String, InternalError> {
             items.iter().map(|d| {
                 ItemBuilder::default()
                     .title(d.title.to_string())
-                    .description(create_item_desc(&d))
+                    .description(create_item_desc(d))
                     .link(d.short_link.to_string())
                     .build()
             }).collect::<Vec<Item>>()
         )
         .build();
 
-    channel.validate()?;
+    channel.validate().map_err(MyError::Validation)?;
     Ok(channel.to_string())
 }
 
@@ -68,17 +69,11 @@ fn convert_count(c: u32) -> String {
     }
 }
 
-async fn call_api() -> Result<Bili, InternalError> {
-    let resp = reqwest::get("https://api.bilibili.com/x/web-interface/online/list")
-        .await?
-        .json::<Bili>()
-        .await?;
-
-    Ok(resp)
-}
-
 pub async fn generate_rss(blacklist: Arc<RwLock<Blacklist>>) -> Result<impl Reply, Rejection> {
-    let resp = call_api().await?;
+    let resp = reqwest::get("https://api.bilibili.com/x/web-interface/online/list")
+        .await.map_err(MyError::Reqwest)?
+        .json::<Bili>()
+        .await.map_err(MyError::Reqwest)?;
 
     let b = blacklist.read().await;
     let items: Vec<BiliData> = resp.data
@@ -86,7 +81,7 @@ pub async fn generate_rss(blacklist: Arc<RwLock<Blacklist>>) -> Result<impl Repl
         .filter(move |bili_data| b.filter(bili_data))
         .collect();
 
-    Ok(create_rss(items)?)
+    create_rss(items)
 }
 
 #[test]
