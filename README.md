@@ -1,4 +1,4 @@
-A personal use converter from https://www.bilibili.com/video/online.html and other sites to RSS.
+An RSS converter of https://www.bilibili.com/video/online.html and other sites for personal use.
 
 Because there are too many video authors and categories I don't care about, so a blacklist is included.
 This blacklist is highly personal.
