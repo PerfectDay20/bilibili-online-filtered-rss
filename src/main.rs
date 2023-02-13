@@ -35,7 +35,7 @@ async fn main() {
 
     let cache = Arc::new(RwLock::new(RssCache::new()));
     let cache_filter = warp::any().map(move || Arc::clone(&cache));
-    
+
     // GET /
     let get_rss = warp::get()
         .and(warp::path::end())
@@ -81,6 +81,7 @@ async fn main() {
     let get_ddys = warp::get()
         .and(warp::path("ddys"))
         .and(warp::path::end())
+        .and(cache_filter.clone())
         .and_then(ddys::rss_generator::generate_rss);
 
     let routes = get_rss

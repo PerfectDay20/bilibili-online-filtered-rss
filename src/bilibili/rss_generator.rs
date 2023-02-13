@@ -11,12 +11,51 @@ use crate::blacklist::Blacklist;
 use crate::cache::{CacheType, RssCache};
 use crate::error::MyError;
 
+/// First get rss content from cache, if None or expired, call API
+pub async fn generate_rss(blacklist: Arc<RwLock<Blacklist>>, cache: Arc<RwLock<RssCache>>)
+                          -> Result<impl Reply, Rejection> {
+    if let Some(content) = cache.read().await.get(&CacheType::Bilibili) {
+        if !content.is_expired() {
+            info!("Cache is not expired, return cache content");
+            return Ok(reply(content.get_rss()));
+        }
+    }
+
+    info!("Cache is None or expired, call API to generate rss");
+    match generate_new_rss(blacklist).await {
+        Ok(rss) => {
+            cache.write().await.insert(CacheType::Bilibili, rss.clone());
+            Ok(reply(rss))
+        }
+        Err(e) => Err(e)
+    }
+}
+
+async fn generate_new_rss(blacklist: Arc<RwLock<Blacklist>>) -> Result<String, Rejection> {
+    let resp = reqwest::get("https://api.bilibili.com/x/web-interface/online/list")
+        .await.map_err(MyError::Reqwest)?
+        .json::<Bili>()
+        .await.map_err(MyError::Reqwest)?;
+
+    let b = blacklist.read().await;
+    let items: Vec<BiliData> = resp.data
+        .into_iter()
+        .filter(move |bili_data| b.filter(bili_data))
+        .collect();
+
+    assemble(items)
+}
+
+fn reply(rss: String) -> impl Reply {
+    warp::reply::with_header(rss, "content-type", "text/xml; charset=utf-8")
+}
+
 const TITLE: &str = "Filtered BiliBili online list";
 const LINK: &str = "https://www.bilibili.com/video/online.html";
 const DESC: &str = "A filtered BiliBili online list based on my blacklist";
 const ICON_URL: &str = "https://www.bilibili.com/favicon.ico";
 
-fn create_rss(items: Vec<BiliData>) -> Result<String, Rejection> {
+fn assemble(items: Vec<BiliData>) -> Result<String, Rejection> {
     let channel = ChannelBuilder::default()
         .title(TITLE)
         .link(LINK)
@@ -69,41 +108,6 @@ fn convert_count(c: u32) -> String {
     } else {
         (c / 10000).to_string() + "w"
     }
-}
-
-/// First get rss content from cache, if None or expired, call API
-pub async fn generate_rss(blacklist: Arc<RwLock<Blacklist>>, cache: Arc<RwLock<RssCache>>)
-                          -> Result<impl Reply, Rejection> {
-    if let Some(content) = cache.read().await.get(&CacheType::Bilibili) {
-        if !content.is_expired() {
-            info!("Cache is not expired, return cache content");
-            return Ok(reply(content.get_rss()));
-        }
-    }
-
-    info!("Cache is None or expired, call API to generate rss");
-    let resp = reqwest::get("https://api.bilibili.com/x/web-interface/online/list")
-        .await.map_err(MyError::Reqwest)?
-        .json::<Bili>()
-        .await.map_err(MyError::Reqwest)?;
-
-    let b = blacklist.read().await;
-    let items: Vec<BiliData> = resp.data
-        .into_iter()
-        .filter(move |bili_data| b.filter(bili_data))
-        .collect();
-
-    match create_rss(items) {
-        Ok(rss) => {
-            cache.write().await.insert(CacheType::Bilibili, rss.clone());
-            Ok(reply(rss))
-        }
-        Err(e) => Err(e)
-    }
-}
-
-fn reply(rss: String) -> impl Reply {
-    warp::reply::with_header(rss, "content-type", "text/xml; charset=utf-8")
 }
 
 #[test]
