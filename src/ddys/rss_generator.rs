@@ -1,54 +1,39 @@
+use std::sync::Arc;
+
 use rss::{ChannelBuilder, ImageBuilder, Item, ItemBuilder};
 use rss::validation::Validate;
-use warp::{Rejection, Reply};
 use scraper::{Html, Selector};
+use tokio::sync::RwLock;
+use tracing::info;
+use warp::{Rejection, Reply};
 
+use crate::cache::{CacheType, RssCache};
 use crate::ddys::Ddys;
 use crate::error::MyError;
 
-const TITLE: &str = "ddys.site";
-const LINK: &str = "https://ddys.site";
-const DESC: &str = "A rss for ddys";
-const ICON_URL: &str = "https://ddys.art/favicon-32x32.png";
+pub async fn generate_rss(cache: Arc<RwLock<RssCache>>) -> Result<impl Reply, Rejection> {
+    if let Some(content) = cache.read().await.get(&CacheType::Ddys) {
+        if !content.is_expired() {
+            info!("Cache is not expired, return cache content");
+            return Ok(reply(content.get_rss()));
+        }
+    }
 
-fn create_rss(items: Vec<Ddys>) -> Result<impl Reply, Rejection> {
-    let channel = ChannelBuilder::default()
-        .title(TITLE)
-        .link(LINK)
-        .description(DESC)
-        .image(Some(ImageBuilder::default()
-            .title(TITLE)
-            .link(LINK)
-            .url(ICON_URL)
-            .build()))
-        .items(
-            items.iter().map(|d| {
-                ItemBuilder::default()
-                    .title(d.title.to_string())
-                    .description(create_item_desc(d))
-                    .link(d.url.to_string())
-                    .build()
-            }).collect::<Vec<Item>>()
-        )
-        .build();
-
-    channel.validate().map_err(MyError::Validation)?;
-    Ok(warp::reply::with_header(channel.to_string(), "content-type", "text/xml; charset=utf-8"))
+    info!("Cache is None or expired, call API to generate rss");
+    match generate_new_rss().await {
+        Ok(rss) => {
+            cache.write().await.insert(CacheType::Ddys, rss.clone());
+            Ok(reply(rss))
+        }
+        Err(e) => Err(e)
+    }
 }
 
-fn create_item_desc(d: &Ddys) -> String {
-    format!(r#"
-    <b>category:</b> {category}
-    <p></p>
-    <b>desc:</b> {desc}
-    <p></p>
-    <img style="width:100%" src="{img_src}" width="500">"#,
-            category = d.category.join(" "),
-            desc = d.desc,
-            img_src = d.image_url)
+fn reply(rss: String) -> impl Reply {
+    warp::reply::with_header(rss, "content-type", "text/xml; charset=utf-8")
 }
 
-pub async fn generate_rss() -> Result<impl Reply, Rejection> {
+async fn generate_new_rss() -> Result<String, Rejection> {
     let html = reqwest::get("https://ddys.pro")
         .await.map_err(MyError::Reqwest)?
         .text()
@@ -100,6 +85,47 @@ pub async fn generate_rss() -> Result<impl Reply, Rejection> {
 
         result.push(ddys);
     }
+    assemble(result)
+}
 
-    create_rss(result)
+const TITLE: &str = "ddys.site";
+const LINK: &str = "https://ddys.site";
+const DESC: &str = "A rss for ddys";
+const ICON_URL: &str = "https://ddys.art/favicon-32x32.png";
+
+fn assemble(items: Vec<Ddys>) -> Result<String, Rejection> {
+    let channel = ChannelBuilder::default()
+        .title(TITLE)
+        .link(LINK)
+        .description(DESC)
+        .image(Some(ImageBuilder::default()
+            .title(TITLE)
+            .link(LINK)
+            .url(ICON_URL)
+            .build()))
+        .items(
+            items.iter().map(|d| {
+                ItemBuilder::default()
+                    .title(d.title.to_string())
+                    .description(create_item_desc(d))
+                    .link(d.url.to_string())
+                    .build()
+            }).collect::<Vec<Item>>()
+        )
+        .build();
+
+    channel.validate().map_err(MyError::Validation)?;
+    Ok(channel.to_string())
+}
+
+fn create_item_desc(d: &Ddys) -> String {
+    format!(r#"
+    <b>category:</b> {category}
+    <p></p>
+    <b>desc:</b> {desc}
+    <p></p>
+    <img style="width:100%" src="{img_src}" width="500">"#,
+            category = d.category.join(" "),
+            desc = d.desc,
+            img_src = d.image_url)
 }

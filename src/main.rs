@@ -9,6 +9,7 @@ use warp::Filter;
 
 use bilibili::blacklist;
 use bilibili::blacklist::Blacklist;
+use crate::cache::RssCache;
 
 use crate::cli::Cli;
 
@@ -16,6 +17,7 @@ mod bilibili;
 mod ddys;
 mod cli;
 mod error;
+mod cache;
 
 #[tokio::main]
 async fn main() {
@@ -31,10 +33,14 @@ async fn main() {
     let blacklist = Arc::new(RwLock::new(Blacklist::from(cli.blacklist_path)));
     let blacklist_filter = warp::any().map(move || Arc::clone(&blacklist));
 
+    let cache = Arc::new(RwLock::new(RssCache::new()));
+    let cache_filter = warp::any().map(move || Arc::clone(&cache));
+
     // GET /
     let get_rss = warp::get()
         .and(warp::path::end())
         .and(blacklist_filter.clone())
+        .and(cache_filter.clone())
         .and_then(bilibili::rss_generator::generate_rss);
 
 
@@ -75,6 +81,7 @@ async fn main() {
     let get_ddys = warp::get()
         .and(warp::path("ddys"))
         .and(warp::path::end())
+        .and(cache_filter.clone())
         .and_then(ddys::rss_generator::generate_rss);
 
     let routes = get_rss
