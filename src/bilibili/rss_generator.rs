@@ -3,10 +3,12 @@ use std::sync::Arc;
 use rss::{ChannelBuilder, ImageBuilder, Item, ItemBuilder};
 use rss::validation::Validate;
 use tokio::sync::RwLock;
+use tracing::info;
 use warp::{Rejection, Reply};
 
 use crate::bilibili::{Bili, BiliData};
 use crate::blacklist::Blacklist;
+use crate::cache::{CacheType, RssCache};
 use crate::error::MyError;
 
 const TITLE: &str = "Filtered BiliBili online list";
@@ -14,7 +16,7 @@ const LINK: &str = "https://www.bilibili.com/video/online.html";
 const DESC: &str = "A filtered BiliBili online list based on my blacklist";
 const ICON_URL: &str = "https://www.bilibili.com/favicon.ico";
 
-fn create_rss(items: Vec<BiliData>) -> Result<impl Reply, Rejection> {
+fn create_rss(items: Vec<BiliData>) -> Result<String, Rejection> {
     let channel = ChannelBuilder::default()
         .title(TITLE)
         .link(LINK)
@@ -36,7 +38,7 @@ fn create_rss(items: Vec<BiliData>) -> Result<impl Reply, Rejection> {
         .build();
 
     channel.validate().map_err(MyError::Validation)?;
-    Ok(warp::reply::with_header(channel.to_string(), "content-type", "text/xml; charset=utf-8"))
+    Ok(channel.to_string())
 }
 
 fn create_item_desc(d: &BiliData) -> String {
@@ -69,7 +71,17 @@ fn convert_count(c: u32) -> String {
     }
 }
 
-pub async fn generate_rss(blacklist: Arc<RwLock<Blacklist>>) -> Result<impl Reply, Rejection> {
+/// First get rss content from cache, if None or expired, call API
+pub async fn generate_rss(blacklist: Arc<RwLock<Blacklist>>, cache: Arc<RwLock<RssCache>>)
+                          -> Result<impl Reply, Rejection> {
+    if let Some(content) = cache.read().await.get(&CacheType::Bilibili) {
+        if !content.is_expired() {
+            info!("Cache is not expired, return cache content");
+            return Ok(reply(content.get_rss()));
+        }
+    }
+
+    info!("Cache is None or expired, call API to generate rss");
     let resp = reqwest::get("https://api.bilibili.com/x/web-interface/online/list")
         .await.map_err(MyError::Reqwest)?
         .json::<Bili>()
@@ -81,7 +93,17 @@ pub async fn generate_rss(blacklist: Arc<RwLock<Blacklist>>) -> Result<impl Repl
         .filter(move |bili_data| b.filter(bili_data))
         .collect();
 
-    create_rss(items)
+    match create_rss(items) {
+        Ok(rss) => {
+            cache.write().await.insert(CacheType::Bilibili, rss.clone());
+            Ok(reply(rss))
+        }
+        Err(e) => Err(e)
+    }
+}
+
+fn reply(rss: String) -> impl Reply {
+    warp::reply::with_header(rss, "content-type", "text/xml; charset=utf-8")
 }
 
 #[test]
