@@ -11,7 +11,7 @@ const LINK: &str = "https://ddys.site";
 const DESC: &str = "A rss for ddys";
 const ICON_URL: &str = "https://ddys.art/favicon-32x32.png";
 
-fn create_rss(items: Vec<Ddys>) -> Result<String, Rejection> {
+fn create_rss(items: Vec<Ddys>) -> Result<impl Reply, Rejection> {
     let channel = ChannelBuilder::default()
         .title(TITLE)
         .link(LINK)
@@ -33,7 +33,7 @@ fn create_rss(items: Vec<Ddys>) -> Result<String, Rejection> {
         .build();
 
     channel.validate().map_err(MyError::Validation)?;
-    Ok(channel.to_string())
+    Ok(warp::reply::with_header(channel.to_string(), "content-type", "text/xml; charset=utf-8"))
 }
 
 fn create_item_desc(d: &Ddys) -> String {

@@ -14,7 +14,7 @@ const LINK: &str = "https://www.bilibili.com/video/online.html";
 const DESC: &str = "A filtered BiliBili online list based on my blacklist";
 const ICON_URL: &str = "https://www.bilibili.com/favicon.ico";
 
-fn create_rss(items: Vec<BiliData>) -> Result<String, Rejection> {
+fn create_rss(items: Vec<BiliData>) -> Result<impl Reply, Rejection> {
     let channel = ChannelBuilder::default()
         .title(TITLE)
         .link(LINK)
@@ -36,7 +36,7 @@ fn create_rss(items: Vec<BiliData>) -> Result<String, Rejection> {
         .build();
 
     channel.validate().map_err(MyError::Validation)?;
-    Ok(channel.to_string())
+    Ok(warp::reply::with_header(channel.to_string(), "content-type", "text/xml; charset=utf-8"))
 }
 
 fn create_item_desc(d: &BiliData) -> String {
