@@ -145,18 +145,21 @@ This blacklist is highly personal.
 
 </details>
 
-
-
-
 # APIs
-## bilibili 
+
+## homepage
+
+- `GET /` simple introduction and site map
+
+## bilibili
+
 - `GET /bilibili/feed` get rss content
 - `GET /bilibili/blacklist` get blacklist
 - `PATCH /bilibili/blacklist` with json blacklist body to add new items to blacklist, return the result blacklist
 - `PUT /bilibili/blacklist` with json blacklist body to replace blacklist, return the result blacklist
 
-
 HTTP blacklist request body should be a json object, available fields are:
+
 ```json
 {
     "authors": [
