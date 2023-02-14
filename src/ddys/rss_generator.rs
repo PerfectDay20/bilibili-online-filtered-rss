@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use rss::{ChannelBuilder, ImageBuilder, Item, ItemBuilder};
 use rss::validation::Validate;
+use rss::{ChannelBuilder, GuidBuilder, ImageBuilder, Item, ItemBuilder};
 use scraper::{Html, Selector};
 use tokio::sync::RwLock;
 use tracing::info;
@@ -25,7 +25,7 @@ pub async fn generate_rss(cache: Arc<RwLock<RssCache>>) -> Result<impl Reply, Re
             cache.write().await.insert(CacheType::Ddys, rss.clone());
             Ok(reply(rss))
         }
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     }
 }
 
@@ -35,9 +35,11 @@ fn reply(rss: String) -> impl Reply {
 
 async fn generate_new_rss() -> Result<String, Rejection> {
     let html = reqwest::get("https://ddys.pro")
-        .await.map_err(MyError::Reqwest)?
+        .await
+        .map_err(MyError::Reqwest)?
         .text()
-        .await.map_err(MyError::Reqwest)?;
+        .await
+        .map_err(MyError::Reqwest)?;
 
     let fragment = Html::parse_document(&html);
     let post_selector = Selector::parse(r#" body > div[id="container"] > main > div[class="post-box-list"] > article > div[class="post-box-container"] "#).unwrap();
@@ -62,7 +64,14 @@ async fn generate_new_rss() -> Result<String, Rejection> {
 
             if let Some(titles) = p.select(&title_selector).next() {
                 // url
-                ddys.url = titles.select(&url_selector).next().unwrap().value().attr("href").unwrap().to_string();
+                ddys.url = titles
+                    .select(&url_selector)
+                    .next()
+                    .unwrap()
+                    .value()
+                    .attr("href")
+                    .unwrap()
+                    .to_string();
                 if let Some(title) = titles.text().next() {
                     // title
                     ddys.title = title.to_string();
@@ -73,7 +82,6 @@ async fn generate_new_rss() -> Result<String, Rejection> {
                 ddys.desc = desc.text().collect::<Vec<_>>().join(" ").to_string();
             }
         }
-
 
         // image
         if let Some(image) = post.select(&image_selector).next() {
@@ -98,19 +106,33 @@ fn assemble(items: Vec<Ddys>) -> Result<String, Rejection> {
         .title(TITLE)
         .link(LINK)
         .description(DESC)
-        .image(Some(ImageBuilder::default()
-            .title(TITLE)
-            .link(LINK)
-            .url(ICON_URL)
-            .build()))
+        .image(Some(
+            ImageBuilder::default()
+                .title(TITLE)
+                .link(LINK)
+                .url(ICON_URL)
+                .build(),
+        ))
         .items(
-            items.iter().map(|d| {
-                ItemBuilder::default()
-                    .title(d.title.to_string())
-                    .description(create_item_desc(d))
-                    .link(d.url.to_string())
-                    .build()
-            }).collect::<Vec<Item>>()
+            items
+                .iter()
+                .map(|d| {
+                    ItemBuilder::default()
+                        .title(d.title.clone())
+                        .description(create_item_desc(d))
+                        .link(d.url.clone())
+                        .guid(
+                            // guid = title + url, because when an episode is updated, the page title is changed while url is not,
+                            // we don't know which one will be used by rss aggregator to deduplicate,
+                            // so make the guid explicit is a safe bet
+                            GuidBuilder::default()
+                                .value(d.title.clone() + &d.url)
+                                .permalink(false)
+                                .build(),
+                        )
+                        .build()
+                })
+                .collect::<Vec<Item>>(),
         )
         .build();
 
@@ -119,13 +141,15 @@ fn assemble(items: Vec<Ddys>) -> Result<String, Rejection> {
 }
 
 fn create_item_desc(d: &Ddys) -> String {
-    format!(r#"
+    format!(
+        r#"
     <b>category:</b> {category}
     <p></p>
     <b>desc:</b> {desc}
     <p></p>
     <img style="width:100%" src="{img_src}" width="500">"#,
-            category = d.category.join(" "),
-            desc = d.desc,
-            img_src = d.image_url)
+        category = d.category.join(" "),
+        desc = d.desc,
+        img_src = d.image_url
+    )
 }
