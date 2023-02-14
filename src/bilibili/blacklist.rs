@@ -11,17 +11,20 @@ use warp::{Rejection, Reply};
 
 use crate::bilibili::BiliData;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct Blacklist {
-    #[serde(default)]
+    enable: bool,
+    // #[serde(default)]
     authors: HashSet<String>,
-    #[serde(default)]
+    // #[serde(default)]
     categories: HashSet<String>,
 }
 
 impl Blacklist {
-    pub fn new() -> Self {
+    pub fn new(enable: bool) -> Self {
         Blacklist {
+            enable,
             authors: HashSet::new(),
             categories: HashSet::new(),
         }
@@ -29,7 +32,12 @@ impl Blacklist {
     /// Filter rss content based on author name and category.
     /// Return true when items can be read
     pub fn filter(&self, bili_data: &BiliData) -> bool {
-        !self.authors.contains(&bili_data.owner.name) && !self.categories.contains(&bili_data.tname)
+        if self.enable {
+            !self.authors.contains(&bili_data.owner.name)
+                && !self.categories.contains(&bili_data.tname)
+        } else {
+            true
+        }
     }
 }
 

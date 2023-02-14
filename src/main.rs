@@ -32,8 +32,8 @@ async fn main() {
     let cli = Cli::parse();
 
     let blacklist = if cli.disable_blacklist {
-        info!("blacklist is disabled, use a empty blacklist");
-        Arc::new(RwLock::new(Blacklist::new()))
+        info!("blacklist is disabled");
+        Arc::new(RwLock::new(Blacklist::new(false)))
     } else {
         Arc::new(RwLock::new(Blacklist::from(cli.blacklist_path)))
     };
