@@ -1,59 +1,100 @@
-### get rss content
-GET http://127.0.0.1:3000
+### get bilibili rss content
+GET http://127.0.0.1:3000/bilibili/feed
+
+
+### get ddys rss content
+GET http://127.0.0.1:3000/ddys/feed
+
 
 ### get blacklist
-GET http://127.0.0.1:3000/blacklist
+GET http://127.0.0.1:3000/bilibili/blacklist
 
 
 ### add new items to blacklist, wrong format
-PATCH http://127.0.0.1:3000/blacklist
+PATCH http://127.0.0.1:3000/bilibili/blacklist
 Content-Type: application/json
 
-["hello", "world"]
+[
+  "hello",
+  "world"
+]
 
 ### add new items to blacklist
-PATCH http://127.0.0.1:3000/blacklist
+PATCH http://127.0.0.1:3000/bilibili/blacklist
 Content-Type: application/json
 
-{"authors":["a"],"categories":["b"]}
+{
+  "authors": [
+    "a"
+  ],
+  "categories": [
+    "b"
+  ]
+}
 
 
 ### add new items to blacklist, only author
-PATCH http://127.0.0.1:3000/blacklist
+PATCH http://127.0.0.1:3000/bilibili/blacklist
 Content-Type: application/json
 
-{"authors":["a"]}
+{
+  "authors": [
+    "a"
+  ]
+}
 
 ### add new items to blacklist, only category
-PATCH http://127.0.0.1:3000/blacklist
+PATCH http://127.0.0.1:3000/bilibili/blacklist
 Content-Type: application/json
 
-{"categories":["b"]}
+{
+  "categories": [
+    "b"
+  ]
+}
 
 ### replace blacklist, wrong format
-PUT http://127.0.0.1:3000/blacklist
+PUT http://127.0.0.1:3000/bilibili/blacklist
 Content-Type: application/json
 
-["hello", "world"]
+[
+  "hello",
+  "world"
+]
 
 
 ### replace blacklist
-PUT http://127.0.0.1:3000/blacklist
+PUT http://127.0.0.1:3000/bilibili/blacklist
 Content-Type: application/json
 
-{"authors":["a"],"categories":["b"]}
+{
+  "authors": [
+    "a"
+  ],
+  "categories": [
+    "b"
+  ]
+}
 
 ### replace blacklist, only author
-PUT http://127.0.0.1:3000/blacklist
+PUT http://127.0.0.1:3000/bilibili/blacklist
 Content-Type: application/json
 
-{"authors":["a"]}
+{
+  "authors": [
+    "a"
+  ]
+}
 
 ### replace blacklist, only category
-PUT http://127.0.0.1:3000/blacklist
+PUT http://127.0.0.1:3000/bilibili/blacklist
 Content-Type: application/json
 
-{"categories":["b"]}
+{
+  "categories": [
+    "b"
+  ]
+}
 
 
 ### get unknown path, return 404
@@ -61,3 +102,6 @@ GET http://127.0.0.1:3000/unknown
 
 ### CORS
 OPTIONS http://127.0.0.1:3000
+
+### status
+GET http://127.0.0.1:3000/status

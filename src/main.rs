@@ -9,15 +9,15 @@ use warp::Filter;
 
 use bilibili::blacklist;
 use bilibili::blacklist::Blacklist;
-use crate::cache::RssCache;
 
+use crate::cache::RssCache;
 use crate::cli::Cli;
 
 mod bilibili;
-mod ddys;
-mod cli;
-mod error;
 mod cache;
+mod cli;
+mod ddys;
+mod error;
 
 #[tokio::main]
 async fn main() {
@@ -36,51 +36,41 @@ async fn main() {
     let cache = Arc::new(RwLock::new(RssCache::new()));
     let cache_filter = warp::any().map(move || Arc::clone(&cache));
 
-    // GET /
+    // GET /bilibili/feed
     let get_rss = warp::get()
-        .and(warp::path::end())
+        .and(warp::path!("bilibili" / "feed"))
         .and(blacklist_filter.clone())
         .and(cache_filter.clone())
         .and_then(bilibili::rss_generator::generate_rss);
 
-
-    // GET /blacklist
+    // GET /bilibili/blacklist
     let get_blacklist = warp::get()
-        .and(warp::path("blacklist"))
-        .and(warp::path::end())
+        .and(warp::path!("bilibili" / "blacklist"))
         .and(blacklist_filter.clone())
-        .then(|b: Arc<RwLock<Blacklist>>| async move {
-            warp::reply::json(&*b.read().await)
-        });
+        .then(|b: Arc<RwLock<Blacklist>>| async move { warp::reply::json(&*b.read().await) });
 
-    // PATCH /blacklist
+    // PATCH /bilibili/blacklist
     let patch_blacklist = warp::patch()
-        .and(warp::path("blacklist"))
-        .and(warp::path::end())
+        .and(warp::path!("bilibili" / "blacklist"))
         .and(blacklist_filter.clone())
         .and(warp::body::content_length_limit(32 * 1024))
         .and(warp::body::json())
         .and_then(blacklist::patch_blacklist);
 
-    // PUT /blacklist
+    // PUT /bilibili/blacklist
     let put_blacklist = warp::put()
-        .and(warp::path("blacklist"))
-        .and(warp::path::end())
+        .and(warp::path!("bilibili" / "blacklist"))
         .and(blacklist_filter.clone())
         .and(warp::body::content_length_limit(32 * 1024))
         .and(warp::body::json())
         .and_then(blacklist::put_blacklist);
 
     // GET /status
-    let get_status = warp::get()
-        .and(warp::path("status"))
-        .and(warp::path::end())
-        .map(|| "ok");
+    let get_status = warp::get().and(warp::path!("status")).map(|| "ok");
 
-    // GET /ddys
+    // GET /ddys/feed
     let get_ddys = warp::get()
-        .and(warp::path("ddys"))
-        .and(warp::path::end())
+        .and(warp::path!("ddys" / "feed"))
         .and(cache_filter.clone())
         .and_then(ddys::rss_generator::generate_rss);
 
