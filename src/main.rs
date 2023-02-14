@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use clap::Parser;
 use tokio::sync::RwLock;
+use tracing::info;
 use tracing_subscriber::fmt::format::FmtSpan;
 use warp::Filter;
 
@@ -30,7 +31,13 @@ async fn main() {
 
     let cli = Cli::parse();
 
-    let blacklist = Arc::new(RwLock::new(Blacklist::from(cli.blacklist_path)));
+    let blacklist = if cli.disable_blacklist {
+        info!("blacklist is disabled, use a empty blacklist");
+        Arc::new(RwLock::new(Blacklist::new()))
+    } else {
+        Arc::new(RwLock::new(Blacklist::from(cli.blacklist_path)))
+    };
+
     let blacklist_filter = warp::any().map(move || Arc::clone(&blacklist));
 
     let cache = Arc::new(RwLock::new(RssCache::new()));
@@ -39,7 +46,7 @@ async fn main() {
     // GET /, the homepage
     let get_homepage = warp::get()
         .and(warp::path::end())
-        .and(warp::fs::file("resources/index.html"));
+        .map(|| warp::reply::html(include_str!("../resources/index.html")));
 
     // GET /bilibili/feed
     let get_rss = warp::get()

@@ -1,7 +1,7 @@
-use std::{fs, process};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::{fs, process};
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -20,11 +20,16 @@ pub struct Blacklist {
 }
 
 impl Blacklist {
+    pub fn new() -> Self {
+        Blacklist {
+            authors: HashSet::new(),
+            categories: HashSet::new(),
+        }
+    }
     /// Filter rss content based on author name and category.
     /// Return true when items can be read
     pub fn filter(&self, bili_data: &BiliData) -> bool {
-        !self.authors.contains(&bili_data.owner.name)
-            && !self.categories.contains(&bili_data.tname)
+        !self.authors.contains(&bili_data.owner.name) && !self.categories.contains(&bili_data.tname)
     }
 }
 
@@ -47,15 +52,18 @@ impl From<Option<PathBuf>> for Blacklist {
                 }
             }
             None => {
-                info!("no blacklist path provided, won't enable filter");
-                Blacklist { authors: HashSet::new(), categories: HashSet::new() }
+                info!("no blacklist path provided, use default");
+                let blacklist: Blacklist =
+                    serde_json::from_str(include_str!("../../resources/blacklist.json")).unwrap();
+                info!("init blacklist: {blacklist:?}");
+                blacklist
             }
         }
     }
 }
 
 impl Extend<Blacklist> for Blacklist {
-    fn extend<T: IntoIterator<Item=Blacklist>>(&mut self, iter: T) {
+    fn extend<T: IntoIterator<Item = Blacklist>>(&mut self, iter: T) {
         for b in iter {
             self.authors.extend(b.authors);
             self.categories.extend(b.categories);
@@ -63,14 +71,20 @@ impl Extend<Blacklist> for Blacklist {
     }
 }
 
-pub async fn patch_blacklist(blacklist: Arc<RwLock<Blacklist>>, body: Blacklist) -> Result<impl Reply, Rejection> {
+pub async fn patch_blacklist(
+    blacklist: Arc<RwLock<Blacklist>>,
+    body: Blacklist,
+) -> Result<impl Reply, Rejection> {
     info!("{body:?}");
     let mut b = blacklist.write().await;
     b.extend(Some(body));
     Ok(format!("added: {b:?}"))
 }
 
-pub async fn put_blacklist(blacklist: Arc<RwLock<Blacklist>>, body: Blacklist) -> Result<impl Reply, Rejection> {
+pub async fn put_blacklist(
+    blacklist: Arc<RwLock<Blacklist>>,
+    body: Blacklist,
+) -> Result<impl Reply, Rejection> {
     info!("{body:?}");
     let mut b = blacklist.write().await;
     *b = body;
