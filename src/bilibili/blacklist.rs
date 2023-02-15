@@ -14,20 +14,15 @@ use crate::bilibili::BiliData;
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Blacklist {
+    #[serde(default = "Blacklist::default_enable")]
     enable: bool,
-    // #[serde(default)]
     authors: HashSet<String>,
-    // #[serde(default)]
     categories: HashSet<String>,
 }
 
 impl Blacklist {
-    pub fn new(enable: bool) -> Self {
-        Blacklist {
-            enable,
-            authors: HashSet::new(),
-            categories: HashSet::new(),
-        }
+    fn default_enable() -> bool {
+        true
     }
     /// Filter rss content based on author name and category.
     /// Return true when items can be read
