@@ -7,14 +7,14 @@ description = "A server to convert Bilibili online page to RSS content, filtered
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-warp = "0.3"
+warp = { version = "0.3", features = ["tls"] }
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.11", features = ["json"] }
 futures = "0.3"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-rss = {version = "2.0", features = ["validation"]}
+rss = { version = "2.0", features = ["validation"] }
 clap = { version = "4.1", features = ["derive"] }
-tracing = {version = "0.1", features = ["log"]}
-tracing-subscriber = {version = "0.3", features = ["env-filter"]}
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 scraper = "0.14"

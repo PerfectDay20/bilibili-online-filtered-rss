@@ -1,5 +1,6 @@
 extern crate core;
 
+use futures::future;
 use std::sync::Arc;
 
 use clap::Parser;
@@ -96,5 +97,12 @@ async fn main() {
         .with(warp::trace::request())
         .recover(error::return_error);
 
-    warp::serve(routes).run((cli.host, cli.port)).await;
+    let http = warp::serve(routes.clone()).run((cli.host, cli.port));
+    let https = warp::serve(routes.clone())
+        .tls()
+        .key_path("cert/localhost.decrypted.key")
+        .cert_path("cert/localhost.crt")
+        .run((cli.host, 3443));
+
+    future::join(http, https).await;
 }
