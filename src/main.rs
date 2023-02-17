@@ -43,11 +43,6 @@ async fn main() {
     let cache = Arc::new(RwLock::new(RssCache::new()));
     let cache_filter = warp::any().map(move || Arc::clone(&cache));
 
-    // GET /, the homepage
-    let get_homepage = warp::get()
-        .and(warp::path::end())
-        .map(|| warp::reply::html(include_str!("../resources/index.html")));
-
     // GET /bilibili/feed
     let get_rss = warp::get()
         .and(warp::path!("bilibili" / "feed"))
@@ -86,8 +81,7 @@ async fn main() {
         .and(cache_filter.clone())
         .and_then(ddys::rss_generator::generate_rss);
 
-    let routes = get_homepage
-        .or(get_rss)
+    let routes = get_rss
         .or(get_blacklist)
         .or(patch_blacklist)
         .or(put_blacklist)
