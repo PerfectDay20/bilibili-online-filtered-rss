@@ -2,6 +2,9 @@ An RSS converter of https://www.bilibili.com/video/online.html and other sites f
 
 Because there are too many video authors and categories I don't care about, so a blacklist is included.
 This blacklist is highly personal.
+
+Example site: https://personal-rss.site
+
 <details>
   <summary>Click to see sample</summary>
 
@@ -155,8 +158,8 @@ This blacklist is highly personal.
 
 - `GET /bilibili/feed` get rss content
 - `GET /bilibili/blacklist` get blacklist
-- `PATCH /bilibili/blacklist` with json blacklist body to add new items to blacklist, return the result blacklist
-- `PUT /bilibili/blacklist` with json blacklist body to replace blacklist, return the result blacklist
+- `PATCH /bilibili/blacklist` with json blacklist body to add new items to blacklist, return the result blacklist (need to set `auth-password` option to enable)
+- `PUT /bilibili/blacklist` with json blacklist body to replace blacklist, return the result blacklist (need to set `auth-password` option to enable)
 
 HTTP blacklist request body should be a json object, available fields are:
 
@@ -186,11 +189,13 @@ The authors and categories can be got from the rss content.
 Usage: bilibili-online-rss [OPTIONS]
 
 Options:
-      --host <HOST>            [default: 127.0.0.1]
-  -p, --port <PORT>            [default: 3000]
-      --disable-blacklist      
-  -b, --blacklist-path <FILE>  
-  -h, --help                   Print help
-  -V, --version                Print version
+      --host <HOST>                    [default: 127.0.0.1]
+  -p, --port <PORT>                    [default: 3000]
+      --disable-blacklist              
+  -b, --blacklist-path <FILE>          
+  -a, --auth-password <AUTH_PASSWORD>  If this option is not set, blacklist update APIs will not work for safety
+  -h, --help                           Print help
+  -V, --version                        Print version
+
 
 ```

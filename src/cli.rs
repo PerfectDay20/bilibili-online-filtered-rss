@@ -14,4 +14,7 @@ pub struct Cli {
     pub disable_blacklist: bool,
     #[arg(short, long, value_name = "FILE")]
     pub blacklist_path: Option<PathBuf>,
+    /// If this option is not set, blacklist update APIs will not work for safety
+    #[arg(short, long)]
+    pub auth_password: Option<String>,
 }
