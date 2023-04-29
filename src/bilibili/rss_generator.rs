@@ -79,10 +79,10 @@ fn assemble(items: Vec<BiliData>) -> Result<String, Rejection> {
                     ItemBuilder::default()
                         .title(d.title.clone())
                         .description(create_item_desc(d))
-                        .link(d.short_link.clone())
+                        .link(d.short_link_v2.clone())
                         .guid(
                             GuidBuilder::default()
-                                .value(d.title.clone() + &d.short_link)
+                                .value(d.title.clone() + &d.short_link_v2)
                                 .permalink(false)
                                 .build(),
                         )

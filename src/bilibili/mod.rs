@@ -17,7 +17,7 @@ pub struct BiliData {
     pub owner: Owner,
     pub desc: String,
     pub stat: Stat,
-    pub short_link: String,
+    pub short_link_v2: String,
 }
 
 #[derive(Deserialize)]
