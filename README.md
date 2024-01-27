@@ -3,7 +3,7 @@ An RSS converter of https://www.bilibili.com/video/online.html and other sites f
 Because there are too many video authors and categories I don't care about, so a blacklist is included.
 This blacklist is highly personal.
 
-Example site: https://personal-rss.site
+Example site: https://perfectday20.eu.org/
 
 <details>
   <summary>Click to see sample</summary>
