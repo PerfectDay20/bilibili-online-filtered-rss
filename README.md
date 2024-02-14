@@ -1,5 +1,6 @@
 Deprecated: now the simple RSS function is migrated to https://github.com/PerfectDay20/bilibili-online-filtered-rss-lambda
 
+---
 An RSS converter of https://www.bilibili.com/video/online.html and other sites for personal use.
 
 Because there are too many video authors and categories I don't care about, so a blacklist is included.
